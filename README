@@ -1,0 +1,35 @@
+To run the api proxy, you need to have installed:
+
+ a) node.js framework and required module (see INSTALL file)
+ b) mysql (needed to store receipt/guid informations)
+ c) memcached (needed to store usertokens)
+
+
+In MySQL you need to have a table like this:
+
+mysql> show create table proxy\G
+*************************** 1. row ***************************
+       Table: proxy
+Create Table: CREATE TABLE `proxy` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `userkey` varchar(255) NOT NULL,
+  `receipt` varchar(255) NOT NULL,
+  `guid` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `userkey_receipt` (`userkey`,`receipt`)
+) 
+
+
+Then, configure proxy.js by editing the first lines of code. They should be
+auto explicative.
+
+
+Finally, run the proxy:
+
+  nodes proxy.js
+
+
+You can test the proxy by running the test.php script.
+
+
+That's all :-)
