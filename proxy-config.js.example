@@ -1,0 +1,48 @@
+
+
+// CONFIG START
+
+module.exports.applications = {    
+    'mobile-app-v1.0': { 	
+    	app_name: 'Application one',
+    	app_id: 'mobile-app-v1.0',
+    	app_secret: 'secretsuper',
+    	apikey: 'your apikey here'
+    },
+    'mobile-app-v1.1' : {  
+    	app_name: 'Application two',
+    	app_id: 'mobile-app-v1.0',
+    	app_secret: 'secretsuper',
+    	apikey: 'your apikey here'
+    }
+};
+
+module.exports.server_port  = 9000;
+					// server port on which we listen
+module.exports.memcache_server  = 'localhost';
+			// memcache server host
+module.exports.memcache_port  = 11211;
+				// memcache server port
+module.exports.memcachePrefix  = 'proxyMxmUserToken';
+		// memcache prefix
+module.exports.memcache_memorize_time  = 300;
+			// seconds for usertoken memcache duration
+module.exports.mysql_server  = 'localhost';
+				// mysql server host
+module.exports.mysql_port  = 3306;
+					// mysql server port
+module.exports.mysql_user  = 'user';
+				// mysql_user
+module.exports.mysql_pass  = 'password';
+				// mysql password
+module.exports.mysql_db_name  = 'proxy';
+				// mysql database name
+module.exports.mysql_table_name  = 'proxy';
+				// mysql table name
+module.exports.api_host  = 'api.musixmatch.com';
+			// musiXmatch api server host
+module.exports.api_port  = 80;
+					// musiXmatch api server port
+module.exports.debug  = 1;
+						// activate debug console log
+// CONFIG END

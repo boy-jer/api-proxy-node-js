@@ -1,16 +1,31 @@
 #!/usr/bin/php -q
 <?
 
-$userkey = '1234567890';
+$app_id = 'mobile-app-v1.0';
 $secret = 'secretsuper';
 $signature_protocol = 'sha1';
 
 $receipt = 'ABCDEFG';
 $guid = '123456';
 
+
+// Get captcha url
+
+$url_base = "http://localhost:9000/captcha?app_id=$app_id&receipt=$receipt&guid=$guid";
+$url_base_sign = $url_base . gmdate( 'Ymd' );
+$signature = urlencode(base64_encode(hash_hmac( $signature_protocol, $url_base_sign, $secret, true )));
+$url = $url_base . '&signature=' . $signature . '&signature_protocol=' . $signature_protocol;
+$ch = curl_init($url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+$response = curl_exec($ch);
+curl_close($ch);
+echo "request: $url\n"; 
+
+
+
 // Get Token
 
-$url_base = "http://localhost:8000/ws/1.1/usertoken.get?userkey=$userkey&receipt=$receipt&guid=$guid";
+$url_base = "http://localhost:9000/ws/1.1/token.get?app_id=$app_id&receipt=$receipt&guid=$guid";
 $url_base_sign = $url_base . gmdate( 'Ymd' );
 $signature = urlencode(base64_encode(hash_hmac( $signature_protocol, $url_base_sign, $secret, true )));
 $url = $url_base . '&signature=' . $signature . '&signature_protocol=' . $signature_protocol;
@@ -27,10 +42,12 @@ $usertoken = $decoded_response['message']['body']['user_token'];
 
 // Do Da Call
 
-$url_base = "http://localhost:8000/ws/1.1/" . $argv[1] . "?userkey=$userkey&usertoken=$usertoken";
+$method = stripos( $argv[1] , "?" ) >= 0 ? $argv[1] . "&" : $argv[1] . "?" ;
+$url_base = "http://localhost:9000/ws/1.1/" . $method . "app_id=$app_id&usertoken=$usertoken";
 if ($argv[2]) $url_base.= '&' . $argv[2];
 $url_base_sign = $url_base . gmdate( 'Ymd' );
-$signature = urlencode(base64_encode(hash_hmac( $signature_protocol, $url_base_sign, $secret, true )));
+$signature_base64 = base64_encode(hash_hmac( $signature_protocol, $url_base_sign, $secret, true ));
+$signature = urlencode( $signature_base64 );
 $url = $url_base . '&signature=' . $signature . '&signature_protocol=' . $signature_protocol;
 $ch = curl_init($url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -38,6 +55,7 @@ $response = curl_exec($ch);
 curl_close($ch);
 echo "request: $url\n"; 
 echo "call response: ".indent($response)."\n";
+
 
 function indent($json) {
 
