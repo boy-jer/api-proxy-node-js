@@ -15,10 +15,14 @@ var recaptchaasync = require('recaptcha-async');
 //require('./storage.js');
 //model.TestQuery();
 
-var proxyapi = {           
+var proxyapi = {
 	"/ws/1.1/token.get": function(request,response, application, urlObj, queryObj, call_usertoken ) {
-		var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
+	    var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
 	    var token_msg  = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"'  + generateUserToken( m_conn )  + '"}}}';
+	    response.writeHeader(200,  {
+  		'Content-Length': token_msg.length,
+  		'Content-Type': 'text/plain; charset=utf-8', 
+		'x-mxm-cache': 'no-cache' } );
 	    response.write(token_msg);
 	    response.end();
 	}
@@ -62,23 +66,27 @@ var proxyapi = {
 //require.paths.unshift('.');
 //require('config.js');
 var handleHTTPRequest  = function(request, response)  {
-    if (debug) console.log('\nConnection from addr: '  + request.socket['remoteAddress']  + ' port: '  + request.socket['remotePort']);
-    if (debug) console.log('Parsing: '  + request.url);
+
     var urlObj  = url.parse(request.url, true);
     var queryObj  = urlObj['query'];
     var call  = urlObj['pathname'];
+    if ( call == '/robots.txt' ) {
+        response.write("Disallow: All\n");
+        response.end();
+        return ;
+    }
+    if (debug) console.log('\nConnection from addr: '  + request.socket['remoteAddress']  + ' port: '  + request.socket['remotePort']);
+    if (debug) console.log('Parsing: '  + request.url);
     var call_app_id  = queryObj['app_id'];
     var call_usertoken  = queryObj['usertoken'];
-    var call_signature  = queryObj['signature'].replace(/=+$/g, "");
+    var call_signature  = queryObj['signature']!=null ? queryObj['signature'].replace(/=+$/g, "") : "";
     var call_signature_protocol  = queryObj['signature_protocol'];
     if ( call_signature_protocol  != 'md5'  && call_signature_protocol  != 'sha1'  && call_signature_protocol  != 'sha256' )  {
         call_signature_protocol  = 'sha1';
-         //queryObj['something']
-        
     }
     delete queryObj['signature'];
     delete queryObj['signature_protocol'];
-    
+ 
     // *******************************
     // CHECK 1: the application exists
     var valid_userkey  = '';
@@ -101,9 +109,12 @@ var handleHTTPRequest  = function(request, response)  {
         // *********************************
         // CHECK 2: the signature is correct
         var signed_url  = 'http://'  + request.headers['host']  + call  + '?'  + qs.stringify(queryObj);
+        var secure_signed_url  = 'https://'  + request.headers['host']  + call  + '?'  + qs.stringify(queryObj);
+	
         var real_signature = calculateSignature( signed_url, application, call_signature_protocol );
+        var secure_real_signature = calculateSignature( secure_signed_url, application, call_signature_protocol );
 
-        if ( call_signature  == real_signature  && call_app_id  == application.app_id )  {
+        if ( ( call_signature  == real_signature || call_signature == secure_real_signature) && call_app_id  == application.app_id )  {
             if (debug) console.log('GOOD signature');
             
             if ( proxyapi[ call ] !=null)
@@ -165,7 +176,12 @@ var proxyRequest  = function(request_url, response)  {
 
 	    client_request.addListener("response", function (client_response)  {
 	    	try {
-		        response.writeHeader(client_response.statusCode, client_response.headers);
+			// var cachebypass = new Array( [ [ "x-mxm-bypass-webcache", 1 ] ]  );
+			// var headers = cachebypass.concat( client_response.headers );
+			var headers =  client_response.headers ;
+			headers[ "x-mxm-cache" ] = "no-cache";
+			if ( debug ) console.log( headers ); 
+		        response.writeHeader(client_response.statusCode, headers );
 		        client_response.addListener("data", function (chunk)  {
 		            if (debug) console.log("DATA RECEIVED");
 		            response.write(chunk);
@@ -176,12 +192,14 @@ var proxyRequest  = function(request_url, response)  {
 		        });
 	        } 
 	    	catch( e ) {
-	    		
+			if ( debug ) console.log ( e );
+			response.end();
 	    	}
 	    });
 	    client_request.end();
     }
 	catch(e) {
+		if ( debug ) console.log ( e );
 		response.end();
 	}
 }
@@ -219,6 +237,7 @@ var calculateSignature = function( signed_url, application, call_signature_proto
 
 var catchedHandleHTTPRequest =  function(request, response)  {
 	try {
+		response.setHeader("x-mxm-cache", "no-cache" );
 		handleHTTPRequest(request,response);
 	} catch( e )
 	{
