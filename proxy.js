@@ -11,10 +11,9 @@ var debug = config.debug;
 var recaptchaasync = require('recaptcha-async');
 
 
-var model = require('./storage.js');
-require('./storage.js');
-
-model.TestQuery();
+//var model = require('./storage.js');
+//require('./storage.js');
+//model.TestQuery();
 
 var proxyapi = {           
 	"/ws/1.1/token.get": function(request,response, application, urlObj, queryObj, call_usertoken ) {
