@@ -122,7 +122,7 @@ var handleHTTPRequest  = function(request, response)  {
             else
             	defaultRouteAction(request,response, application,urlObj,queryObj, call_usertoken);
         } else  {
-            if (debug) console.log('BAD signature');
+            if (debug) console.log('BAD signature expected >>' + call_signature + '<<' );
             error_msg = '{"message":{"header":{"status_code":401,"execute_time":0, "hint": "invalid_signature" },"body":""}}';
             response.write(error_msg);
             response.end();
