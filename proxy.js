@@ -1,23 +1,23 @@
 var http  = require('http');
 var url  = require('url');
 var qs  = require('querystring');
-var nMemcached  = require('memcached');
 var crypto  = require('crypto');
-var mysql  = require('mysql');
+//var mysql  = require('mysql');
+var nMemcached  = require('memcached');
 
 var config = require('./proxy-config');
 var debug = config.debug;
 
 var recaptchaasync = require('recaptcha-async');
 
-
 //var model = require('./storage.js');
 //require('./storage.js');
 //model.TestQuery();
 
+var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
+
 var proxyapi = {
 	"/ws/1.1/token.get": function(request,response, application, urlObj, queryObj, call_usertoken ) {
-	    var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
 	    var token_msg  = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"'  + generateUserToken( m_conn )  + '"}}}';
 	    response.writeHeader(200,  {
   		'Content-Length': token_msg.length,
@@ -38,7 +38,7 @@ var proxyapi = {
 				recaptcha.on('data', function (res) {
 					var html;
 					if(res.is_valid) {
-						var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
+						//var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
 						var token_msg  = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"'  + generateUserToken( m_conn )  + '"}}}';
 					    response.write(token_msg);
 					    response.end();
@@ -66,7 +66,6 @@ var proxyapi = {
 //require.paths.unshift('.');
 //require('config.js');
 var handleHTTPRequest  = function(request, response)  {
-
     var urlObj  = url.parse(request.url, true);
     var queryObj  = urlObj['query'];
     var call  = urlObj['pathname'];
@@ -99,12 +98,16 @@ var handleHTTPRequest  = function(request, response)  {
     }
 
     if ( valid_userkey  == '' )  {
-        if (debug) console.log('BAD userkey');
+        if (debug) console.log('BAD api_id');
         var error_msg  = '{"message":{"header":{"status_code":401,"execute_time":0, "hint": "upgrade" },"body":""}}';
+	    response.writeHeader(200,  {
+	  		'Content-Length': error_msg.length,
+	  		'Content-Type': 'text/plain; charset=utf-8',
+			'Pragma': 'no-cache'} );
         response.write(error_msg);
         response.end();
     } else  {
-        if (debug) console.log('GOOD userkey');
+        if (debug) console.log('GOOD api_id');
 
         // *********************************
         // CHECK 2: the signature is correct
@@ -116,14 +119,19 @@ var handleHTTPRequest  = function(request, response)  {
 
         if ( ( call_signature  == real_signature || call_signature == secure_real_signature) && call_app_id  == application.app_id )  {
             if (debug) console.log('GOOD signature');
-            
+
             if ( proxyapi[ call ] !=null)
             	proxyapi[ call ](request,response, application,urlObj,queryObj, call_usertoken)
-            else
+            else {
             	defaultRouteAction(request,response, application,urlObj,queryObj, call_usertoken);
+            }
         } else  {
             if (debug) console.log('BAD signature expected >>' + call_signature + '<<' );
             error_msg = '{"message":{"header":{"status_code":401,"execute_time":0, "hint": "invalid_signature" },"body":""}}';
+    	    response.writeHeader(200,  {
+    	  		'Content-Length': error_msg.length,
+    	  		'Content-Type': 'text/plain; charset=utf-8',
+    			'Pragma': 'no-cache'} );
             response.write(error_msg);
             response.end();
         }
@@ -131,16 +139,26 @@ var handleHTTPRequest  = function(request, response)  {
 }
 
 var defaultRouteAction = function(request,response, application, urlObj, queryObj, call_usertoken) {
-    var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
+    try {
+
+if(debug) console.log("bb");
+	//var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
     if (  ! call_usertoken )  {
         call_usertoken  = "";
     }
+
+if(debug) console.log("cc");
     var ret  = false;
+
     m_conn.get( config.memcachePrefix  + call_usertoken, function( err, result )  {
         if (err  || result  == 0)  {
             if (debug  && err) console.log("MEMCACHE ERROR DURING GET");
             if (debug) console.log('BAD usertoken '  + call_usertoken);
             var error_msg = '{"message":{"header":{"status_code":401,"execute_time":0, "hint": "renew"},"body":""}}';
+    	    response.writeHeader(200,  {
+    	  		'Content-Length': error_msg.length,
+    	  		'Content-Type': 'text/plain; charset=utf-8',
+    			'Pragma': 'no-cache'} );
             response.write(error_msg);
             response.end();
         } else  {
@@ -160,6 +178,11 @@ var defaultRouteAction = function(request,response, application, urlObj, queryOb
             //});
         }
     });
+    if(debug) console.log("aa");
+            } catch(e) {
+            	if(debug) console.log(e);
+            }
+           
 }
 
 var proxyRequest  = function(request_url, response)  {

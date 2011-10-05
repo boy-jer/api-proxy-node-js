@@ -41,8 +41,7 @@ if ( $decoded_response['message']['header']['status_code'] != 200 )
 $usertoken = $decoded_response['message']['body']['user_token'];
 
 // Do Da Call
-
-$method = stripos( $argv[1] , "?" ) >= 0 ? $argv[1] . "&" : $argv[1] . "?" ;
+$method = stripos( $argv[1] , "?" ) === false ?  $argv[1] . "?"  : $argv[1] . "&" ;
 $url_base = "http://localhost:9000/ws/1.1/" . $method . "app_id=$app_id&usertoken=$usertoken";
 if ($argv[2]) $url_base.= '&' . $argv[2];
 $url_base_sign = $url_base . gmdate( 'Ymd' );
