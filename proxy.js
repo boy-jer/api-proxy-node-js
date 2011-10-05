@@ -5,7 +5,7 @@ var crypto  = require('crypto');
 //var mysql  = require('mysql');
 var nMemcached  = require('memcached');
 
-var config = require('./proxy-config');
+var config = require('proxy-config');
 var debug = config.debug;
 
 var recaptchaasync = require('recaptcha-async');
@@ -14,11 +14,13 @@ var recaptchaasync = require('recaptcha-async');
 //require('./storage.js');
 //model.TestQuery();
 
-var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
+//var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
 
 var proxyapi = {
 	"/ws/1.1/token.get": function(request,response, application, urlObj, queryObj, call_usertoken ) {
-	    var token_msg  = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"'  + generateUserToken( m_conn )  + '"}}}';
+		var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
+
+		var token_msg  = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"'  + generateUserToken( m_conn )  + '"}}}';
 	    response.writeHeader(200,  {
   		'Content-Length': token_msg.length,
   		'Content-Type': 'text/plain; charset=utf-8', 
@@ -38,7 +40,7 @@ var proxyapi = {
 				recaptcha.on('data', function (res) {
 					var html;
 					if(res.is_valid) {
-						//var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
+						var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
 						var token_msg  = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"'  + generateUserToken( m_conn )  + '"}}}';
 					    response.write(token_msg);
 					    response.end();
@@ -141,13 +143,11 @@ var handleHTTPRequest  = function(request, response)  {
 var defaultRouteAction = function(request,response, application, urlObj, queryObj, call_usertoken) {
     try {
 
-if(debug) console.log("bb");
-	//var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
+	var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
     if (  ! call_usertoken )  {
         call_usertoken  = "";
     }
 
-if(debug) console.log("cc");
     var ret  = false;
 
     m_conn.get( config.memcachePrefix  + call_usertoken, function( err, result )  {
