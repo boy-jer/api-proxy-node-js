@@ -6,6 +6,7 @@ var crypto  = require('crypto');
 var nMemcached  = require('memcached');
 
 var config = require('proxy-config');
+var config_loader = require('config-loader');
 var debug = config.debug;
 
 var recaptchaasync = require('recaptcha-async');
@@ -17,18 +18,36 @@ var recaptchaasync = require('recaptcha-async');
 //var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
 
 var proxyapi = {
+    	
 	"/ws/1.1/token.get": function(request,response, application, urlObj, queryObj, call_usertoken ) {
 		var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
-
-		var token_msg  = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"'  + generateUserToken( m_conn )  + '"}}}';
+		
+	    // if there is a receipt validation function
+		var modified_application = application;
+	    try {
+		    if ( application.receipt_validate )
+				modified_application = application.receipt_validate( queryObj["receipt"] );
+	    } catch( e )
+	    {	console.log("exception " + e);  }
+		
+		var token_msg  = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"'  + 
+			generateUserToken( m_conn, application )  + '" , app_config: ' + JSON.stringify( modified_application.app_config )  + ' }}}';
 	    response.writeHeader(200,  {
-  		'Content-Length': token_msg.length,
-  		'Content-Type': 'text/plain; charset=utf-8', 
-		'x-mxm-cache': 'no-cache' } );
+	  		'Content-Length': token_msg.length,
+	  		'Content-Type': 'text/plain; charset=utf-8', 
+			'x-mxm-cache': 'no-cache' } );
 	    response.write(token_msg);
 	    response.end();
 	}
 	,"/captcha": function( request,response, application, urlObj, queryObj, call_usertoken ) {
+	    // if there is a receipt validation function
+		var modified_application = application;
+	    try {
+		    if ( application.receipt_validate )
+				modified_application = application.receipt_validate( queryObj["receipt"] );
+	    } catch( e )
+	    {	console.log("exception " + e);  }
+		
 		var recaptcha = new recaptchaasync.reCaptcha();
 	    if (request.method == 'POST') {
 	        var body = '';
@@ -41,7 +60,7 @@ var proxyapi = {
 					var html;
 					if(res.is_valid) {
 						var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
-						var token_msg  = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"'  + generateUserToken( m_conn )  + '"}}}';
+						var token_msg  = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"'  + generateUserToken( m_conn, modified_application )  + '"}}}';
 					    response.write(token_msg);
 					    response.end();
 					} else {
@@ -72,10 +91,12 @@ var handleHTTPRequest  = function(request, response)  {
     var queryObj  = urlObj['query'];
     var call  = urlObj['pathname'];
     if ( call == '/robots.txt' ) {
+    	if (debug) console.log('Robots.txt requested' );
         response.write("Disallow: All\n");
         response.end();
         return ;
     }
+    
     if (debug) console.log('\nConnection from addr: '  + request.socket['remoteAddress']  + ' port: '  + request.socket['remotePort']);
     if (debug) console.log('Parsing: '  + request.url);
     var call_app_id  = queryObj['app_id'];
@@ -91,7 +112,7 @@ var handleHTTPRequest  = function(request, response)  {
     // *******************************
     // CHECK 1: the application exists
     var valid_userkey  = '';
-    var application = config.applications[call_app_id];
+    var application = config_loader.applications[call_app_id];
     if (application !=null) {
         var use_apikey  = application.apikey;
         var valid_userkey  = application.app_id;
@@ -154,7 +175,7 @@ var defaultRouteAction = function(request,response, application, urlObj, queryOb
         if (err  || result  == 0)  {
             if (debug  && err) console.log("MEMCACHE ERROR DURING GET");
             if (debug) console.log('BAD usertoken '  + call_usertoken);
-            var error_msg = '{"message":{"header":{"status_code":401,"execute_time":0, "hint": "renew"},"body":""}}';
+            var error_msg = '{"message":{"header":{"status_code":401,"execute_time":0, "hint": "renew" },"body":""}}';
     	    response.writeHeader(200,  {
     	  		'Content-Length': error_msg.length,
     	  		'Content-Type': 'text/plain; charset=utf-8',
@@ -165,7 +186,10 @@ var defaultRouteAction = function(request,response, application, urlObj, queryOb
             if (debug) console.log('GOOD usertoken '  + result);
             delete queryObj['userkey'];
             delete queryObj['usertoken'];
-            queryObj['apikey']  = application.apikey;
+            
+            token_app = JSON.parse(result);
+            if (debug) console.log('forwarding with apikey ' + token_app.apikey );
+            queryObj['apikey'] = token_app.apikey; //application.apikey;
             var request_url  = urlObj['pathname']  + '?'  + qs.stringify(queryObj);
             if (debug) console.log("Proxing to: "  + request_url);
             proxyRequest( request_url, response );
@@ -179,9 +203,9 @@ var defaultRouteAction = function(request,response, application, urlObj, queryOb
         }
     });
     if(debug) console.log("aa");
-            } catch(e) {
-            	if(debug) console.log(e);
-            }
+    } catch(e) {
+    	if(debug) console.log(e);
+    }
            
 }
 
@@ -189,14 +213,15 @@ var proxyRequest  = function(request_url, response)  {
 	try {
 	    var connection  = http.createClient(config.api_port, config.api_host);
 	    var client_request  = connection.request("GET", request_url,  {
-	        'host' : config.api_host
+	        'host' : config.api_host, 
+	        "x-mxm-backend": "dev-giuseppe"
 	    });
 	    
 		connection.addListener('error', function(connectionException){
 		    if(debug) console.log(connectionException);
 		    response.end();
-		});	    
-
+		});
+		
 	    client_request.addListener("response", function (client_response)  {
 	    	try {
 			// var cachebypass = new Array( [ [ "x-mxm-bypass-webcache", 1 ] ]  );
@@ -227,12 +252,13 @@ var proxyRequest  = function(request_url, response)  {
 	}
 }
 
-var generateUserToken  = function( m_conn )  {
+var generateUserToken  = function( m_conn, application )  {
     var S4  = function()  {
         return (((1 + Math.random()) * 0x10000)|0).toString(16).substring(1);
     };
     var token  = S4() + S4() + S4() + S4() + S4() + S4();
-    m_conn.set( config.memcachePrefix  + token, '1', config.memcache_memorize_time, function( err )  {
+
+    m_conn.set( config.memcachePrefix  + token, JSON.stringify( application )  , config.memcache_memorize_time, function( err )  {
         if (err)  {
             if (debug) console.log("MEMCACHE ERROR DURING SET");
         }
@@ -342,8 +368,6 @@ var catchedHandleHTTPRequest =  function(request, response)  {
                 }
                 // APPLE RECEIPT CHECK END
  */
-
-
 var server  = http.createServer(catchedHandleHTTPRequest);
 server.listen(config.server_port);
 

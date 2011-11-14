@@ -1,22 +1,4 @@
 
-
-// CONFIG START
-
-module.exports.applications = {    
-    'mobile-app-v1.0': { 	
-    	app_name: 'Application one',
-    	app_id: 'mobile-app-v1.0',
-    	app_secret: 'secretsuper',
-    	apikey: 'your apikey here'
-    },
-    'mobile-app-v1.1' : {  
-    	app_name: 'Application two',
-    	app_id: 'mobile-app-v1.0',
-    	app_secret: 'secretsuper',
-    	apikey: 'your apikey here'
-    }
-};
-
 module.exports.server_port  = 9000;
 					// server port on which we listen
 module.exports.memcache_server  = 'localhost';
