@@ -214,7 +214,6 @@ var proxyRequest  = function(request_url, response)  {
 	    var connection  = http.createClient(config.api_port, config.api_host);
 	    var client_request  = connection.request("GET", request_url,  {
 	        'host' : config.api_host, 
-	        "x-mxm-backend": "dev-giuseppe"
 	    });
 	    
 		connection.addListener('error', function(connectionException){
