@@ -204,7 +204,7 @@ var defaultRouteAction = function(request,response, application, urlObj, queryOb
     });
     if(debug) console.log("aa");
     } catch(e) {
-    	if(debug) console.log(e);
+    	if(debug) console.log("Error in default user action: " + e);
     }
            
 }
@@ -217,7 +217,7 @@ var proxyRequest  = function(request_url, response)  {
 	    });
 	    
 		connection.addListener('error', function(connectionException){
-		    if(debug) console.log(connectionException);
+		    if(debug) console.log("error adding the proxying req listnener" + connectionException);
 		    response.end();
 		});
 		
@@ -239,14 +239,14 @@ var proxyRequest  = function(request_url, response)  {
 		        });
 	        } 
 	    	catch( e ) {
-			if ( debug ) console.log ( e );
-			response.end();
+	    		if ( debug ) console.log ( "error proxying the request " + e );
+	    		response.end();
 	    	}
 	    });
 	    client_request.end();
     }
 	catch(e) {
-		if ( debug ) console.log ( e );
+		if ( debug ) console.log ( "error creating the proxying request " + e );
 		response.end();
 	}
 }
