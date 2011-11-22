@@ -1,3 +1,4 @@
+var cluster = require('cluster');
 var http  = require('http');
 var url  = require('url');
 var qs  = require('querystring');
@@ -192,7 +193,7 @@ var defaultRouteAction = function(request,response, application, urlObj, queryOb
             queryObj['apikey'] = token_app.apikey; //application.apikey;
             var request_url  = urlObj['pathname']  + '?'  + qs.stringify(queryObj);
             if (debug) console.log("Proxing to: "  + request_url);
-            proxyRequest( request_url, response );
+            proxyRequest( request_url, request, response );
   
             //refreshes the token
             //m_conn.set( config.memcachePrefix  + call_usertoken, result, config.memcache_memorize_time, function( err )  {
@@ -209,12 +210,12 @@ var defaultRouteAction = function(request,response, application, urlObj, queryOb
            
 }
 
-var proxyRequest  = function(request_url, response)  {
+var proxyRequest  = function(request_url, request, response)  {
 	try {
 	    var connection  = http.createClient(config.api_port, config.api_host);
-	    var client_request  = connection.request("GET", request_url,  {
-	        'host' : config.api_host, 
-	    });
+	    var headers = request.headers;
+	    headers["host"] =  config.api_host;
+	    var client_request  = connection.request("GET", request_url, headers  );
 	    
 		connection.addListener('error', function(connectionException){
 		    if(debug) console.log("error adding the proxying req listnener" + connectionException);
@@ -230,7 +231,7 @@ var proxyRequest  = function(request_url, response)  {
 			if ( debug ) console.log( headers ); 
 		        response.writeHeader(client_response.statusCode, headers );
 		        client_response.addListener("data", function (chunk)  {
-		            if (debug) console.log("DATA RECEIVED");
+		            //if (debug) console.log("DATA RECEIVED");
 		            response.write(chunk);
 		        });
 		        client_response.addListener("end", function ()  {
@@ -367,6 +368,22 @@ var catchedHandleHTTPRequest =  function(request, response)  {
                 }
                 // APPLE RECEIPT CHECK END
  */
-var server  = http.createServer(catchedHandleHTTPRequest);
-server.listen(config.server_port);
 
+var numCPUs = 16;
+if (cluster.isMaster) { 
+  // Fork workers.  
+  for (var i = 0; i < numCPUs; i++) 
+  {
+    cluster.fork();
+  }  
+  cluster.on('death', function(worker) {    
+      console.log('worker ' + worker.pid + ' died');  
+  });
+}
+else {  
+  // Worker processes have a http server.  
+  var server  = http.createServer(catchedHandleHTTPRequest);
+  server.listen(config.server_port);
+}
+
+//server.listen(config.server_port);
