@@ -86,6 +86,9 @@ var proxyapi = {
     }
 }
 
+
+
+
 //TODO
 //require.paths.unshift('.');
 //require('config.js');
@@ -261,12 +264,24 @@ var defaultRouteAction = function (request, response, application, urlObj, query
 
 var proxyRequest = function (request_url, request, response, app_headers ) {
     try {
-        var connection = http.createClient(config.api_port, config.api_host);
-        var headers = request.headers;
-        headers["host"] = config.api_host;
-        var client_request = connection.request("GET", request_url, headers);
+        //var connection = http.createClient(config.api_port, config.api_host, agent:false);
+        //var headers = request.headers;
+        //headers["host"] = config.api_host;
+        //var client_request = connection.request("GET", request_url, headers);
 
-        connection.addListener('error', function (connectionException) {
+        var myheaders = request.headers;
+        myheaders["host"] = config.api_host;
+        var client_request = http.request( { 
+            host: config.api_host, 
+            port: config.api_port, 
+            method: "GET",
+            path: request_url,
+            agent: false,
+            headers: myheaders
+        });
+
+        // connection.addListener('error', function (connectionException) {
+        client_request.addListener('error', function (connectionException) {
             if (debug) console.log("error adding the proxying req listnener" + connectionException);
             response.end();
         });
@@ -313,6 +328,7 @@ var checkFacebookToken = function (facebook_application, facebook_token, ok_call
         host: 'graph.facebook.com',
         port: 443,
         path: '/me?access_token=' + facebook_token,
+        agent: false,
         method: 'GET'
     };
 
@@ -498,6 +514,7 @@ var handleStaticHTTPRequest = function (request, response, dynamicHandler) {
 
 
 var numCPUs = 16;
+
 if (cluster.isMaster) {
     // Fork workers.
     for (var i = 0; i < numCPUs; i++) {
