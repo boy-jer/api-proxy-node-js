@@ -34,7 +34,7 @@ var proxyapi = {
         } catch (e) { console.log("exception " + e); }
 
         var token_msg = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"' +
-			generateUserToken(m_conn, application) + '" , app_config: ' + JSON.stringify(modified_application.app_config) + ' }}}';
+			generateUserToken(m_conn, application) + '" , \"app_config\": ' + JSON.stringify(modified_application.app_config) + ' }}}';
         response.writeHeader(200, {
             'Content-Length': token_msg.length,
             'Content-Type': 'text/plain; charset=utf-8',
