@@ -18,12 +18,27 @@ var recaptchaasync = require('recaptcha-async');
 //var model = require('./storage.js');
 //require('./storage.js');
 //model.TestQuery();
-
 //var m_conn  = new nMemcached( config.memcache_server  + ":"  + config.memcache_port );
 
 var proxyapi = {
+    "/connect/fb":  function (request, response, application, urlObj, queryObj, call_usertoken) {
+        if ( application.facebook != undefined ) { 
+            var fb_id = application.facebook.app_id;
+            var fb_callback = application.facebook.callback || "http://apic.musixmatch.com/callback/fb";
+            var fb_scope= application.facebook.scope || "email,offline_access";
 
-    "/ws/1.1/token.get": function (request, response, application, urlObj, queryObj, call_usertoken) {
+            response.writeHeader(302, {
+                'Location': 'https://www.facebook.com/dialog/oauth?client_id=' + fb_id   
+                     + "&redirect_uri=" + encodeURIComponent(fb_callback) 
+                     + "&scope=" + fb_scope,
+                'Content-Type': 'text/plain; charset=utf-8',
+                'x-mxm-cache': 'no-cache'
+            });
+            response.write("");
+            response.end();
+        }
+     }
+    ,"/ws/1.1/token.get": function (request, response, application, urlObj, queryObj, call_usertoken) {
         var m_conn = new nMemcached(config.memcache_server + ":" + config.memcache_port);
 
         // if there is a receipt validation function
@@ -86,9 +101,6 @@ var proxyapi = {
     }
 }
 
-
-
-
 //TODO
 //require.paths.unshift('.');
 //require('config.js');
@@ -96,15 +108,15 @@ var handleHTTPRequest = function (request, response) {
     var urlObj = url.parse(request.url, true);
     var queryObj = urlObj['query'];
     var call = urlObj['pathname'];
-    if (call == '/robots.txt') {
-        if (debug) console.log('Robots.txt requested');
-        response.write("Disallow: All\n");
-        response.end();
-        return;
-    }
+
     if (debug) console.log('\nConnection from addr: ' + request.socket['remoteAddress'] + ' port: ' + request.socket['remotePort']);
     if (debug) console.log('Parsing: ' + request.url);
     var call_app_id = queryObj['app_id'];
+    if ( call_app_id == undefined ) {
+        // This has not to be handled by this function
+        return false;
+    }
+
     var call_usertoken = queryObj['usertoken'];
     var call_signature = queryObj['signature'] != null ? queryObj['signature'].replace(/=+$/g, "") : "";
     var call_signature_protocol = queryObj['signature_protocol'];
@@ -120,7 +132,7 @@ var handleHTTPRequest = function (request, response) {
     var application = config_loader.applications[call_app_id];
     if (application != null) {
         var use_apikey = application.apikey;
-        var valid_userkey = application.app_id;
+        valid_userkey = application.app_id;
         var valid_secret = application.app_secret;
         if (debug) console.log('Found application: ' + application.app_name);
     }
@@ -168,13 +180,12 @@ var handleHTTPRequest = function (request, response) {
             response.end();
         }
     }
+    return true; // mark request has been handled...
 }
 
 var defaultRouteAction = function (request, response, application, urlObj, queryObj, call_usertoken) {
     try {
         var ret = false;
-
-
         var m_conn = new nMemcached(config.memcache_server + ":" + config.memcache_port);
         if (!call_usertoken) {
             call_usertoken = "";
@@ -400,15 +411,17 @@ var calculateSignature = function (signed_url, application, call_signature_proto
 var catchedHandleHTTPRequest = function (request, response) {
     try {
         response.setHeader("x-mxm-cache", "no-cache");
-        if (debug) console.log("aaa");
-        handleStaticHTTPRequest(request, response, handleHTTPRequest);
+
+        var res = handleHTTPRequest(request, response );
+        if ( res == false ) res = handleAuthCallback(request, response);
+        if ( res == false ) res = handleStaticHTTPRequest(request, response);
     } catch (e) {
         if (debug) console.log('>> ' + e.message);
         response.end();
     }
 }
 
-var handleStaticHTTPRequest = function (request, response, dynamicHandler) {
+var handleStaticHTTPRequest = function (request, response ) {
     if (debug) console.log("base path: " + process.cwd() + "/static");
     var uri = url.parse(request.url).pathname;
     if (debug) console.log("uri " + uri);
@@ -416,8 +429,9 @@ var handleStaticHTTPRequest = function (request, response, dynamicHandler) {
     if (debug) console.log("Accessing path: " + filename);
     path.exists(filename, function (exists) {
         if (!exists) {
-            if (debug) console.log("path does not exists, fallback to executing " + uri);
-            dynamicHandler(request, response);
+            response.writeHead(404);
+            response.write("Not found","binary");
+            response.end();
             return;
         }
 
@@ -435,6 +449,37 @@ var handleStaticHTTPRequest = function (request, response, dynamicHandler) {
             response.end();
         });
     });
+}
+
+var handleAuthCallback = function ( request, response ) {
+    var urlObj = url.parse(request.url, true);
+    var queryObj = urlObj['query'];
+    var call = urlObj['pathname'];
+    if ( call == "/callback" ){
+        response.writeHead(200);
+        if (queryObj["usertoken"] == undefined  )
+            response.write("FAILED", "binary");
+        else
+            response.write("OK", "binary" );
+        response.end();
+        return true;
+    }
+    else if ( call == "/callback/fb" ) {
+        if ( queryObj["code"] != undefined ) {
+            queryObj["usertoken"] = "fb:" + queryObj["code"];
+        }
+        var request_url = "/callback" + '?' + qs.stringify(queryObj);
+        response.writeHeader(302, {
+            'Location': request_url,
+            'Content-Type': 'text/plain; charset=utf-8',
+            'x-mxm-cache': 'no-cache'
+        });
+        response.write("");
+        response.end();
+
+        return true;
+    }
+    return false;
 }
 
 
@@ -513,8 +558,8 @@ var handleStaticHTTPRequest = function (request, response, dynamicHandler) {
  */
 
 
+/*
 var numCPUs = 16;
-
 if (cluster.isMaster) {
     // Fork workers.
     for (var i = 0; i < numCPUs; i++) {
@@ -529,5 +574,6 @@ else {
     var server = http.createServer(catchedHandleHTTPRequest);
     server.listen(config.server_port);
 }
-
-//server.listen(config.server_port);
+*/
+var server = http.createServer(catchedHandleHTTPRequest);
+server.listen(config.server_port);
