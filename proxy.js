@@ -38,6 +38,15 @@ var proxyapi = {
             response.write("");
             response.end();
         }
+        else 
+        {
+            var error_msg = '{"message":{"header":{"status_code":401,"execute_time":0, "hint": "upgrade" },"body":""}}';
+            response.writeHeader(200, {
+                'Content-Length': error_msg.length,
+                'Content-Type': 'text/plain; charset=utf-8',
+                'Pragma': 'no-cache'
+            });
+        }
      }
     ,"/ws/1.1/token.get": function (request, response, application, urlObj, queryObj, call_usertoken) {
         var m_conn = new nMemcached(config.memcache_server + ":" + config.memcache_port);
@@ -482,7 +491,6 @@ var handleAuthCallback = function ( request, response ) {
     }
     return false;
 }
-
 
 /*
                 // APPLE RECEIPT CHECK START
