@@ -24,13 +24,14 @@ var proxyapi = {
     "/connect/fb":  function (request, response, application, urlObj, queryObj, call_usertoken) {
         if ( application.facebook != undefined ) { 
             var fb_id = application.facebook.app_id;
-            var fb_callback = application.facebook.callback || "http://apic.musixmatch.com/callback/fb";
+            var fb_callback = application.facebook.callback || "http://apic.musixmatch.com/fb/callback";
             var fb_scope= application.facebook.scope || "email,offline_access";
+	    var fb_display = application.facebook.display || "popup";
 
             response.writeHeader(302, {
                 'Location': 'https://www.facebook.com/dialog/oauth?client_id=' + fb_id   
                      + "&redirect_uri=" + encodeURIComponent(fb_callback) 
-                     + "&scope=" + fb_scope,
+                     + "&scope=" + fb_scope + "&display=" + fb_display,
                 'Content-Type': 'text/plain; charset=utf-8',
                 'x-mxm-cache': 'no-cache'
             });
@@ -464,7 +465,7 @@ var handleAuthCallback = function ( request, response ) {
         response.end();
         return true;
     }
-    else if ( call == "/callback/fb" ) {
+    else if ( call == "/fb/callback" ) {
         if ( queryObj["code"] != undefined ) {
             queryObj["usertoken"] = "fb:" + queryObj["code"];
         }
