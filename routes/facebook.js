@@ -38,3 +38,47 @@ module.exports.routes =
         }
      }
 };
+
+
+
+var createFacebookToken = function(facebook, code, ok_callback, nok_callback) {
+    var fb_id = facebook.app_id;
+    var fb_secret = facebook.secret;
+    var fb_callback = facebook.callback || "http://apic.musixmatch.com/fb/callback";
+    var fb_scope= facebook.scope || "email,offline_access";
+	var fb_display = facebook.display || "popup";
+
+    var options = {
+        host: 'graph.facebook.com',
+        port: 443,
+        path: '/oauth/access_token?code=' + code+
+            "&client_id=" + fb_id +
+            "&client_secret=" + fb_secret +
+            "&redirect_uri=" + fb_callback,
+        agent: false,
+        method: 'GET'
+    };
+
+    var req = https.request(options, function (client_response) {
+        try {
+            if (debug) console.log("connected to facebook");
+            var body = '';
+            client_response.on('data', function (data) {
+                if (debug) console.log(".");
+                body += data;
+            });
+            client_response.on('end', function () {
+                ok_callback( body );
+            });
+        }
+        catch (e) {
+            if (debug) console.log(e);
+            nok_callback();
+        }
+    });
+    req.on('error', function (e) {
+        if (debug) console.log(connectionException);
+        nok_callback();
+    });
+    req.end();
+} 

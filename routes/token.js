@@ -1,30 +1,27 @@
 util = require("util");
-var nMemcached = require('memcached');
+
+var storage = require( "../lib/storage" );
 
 var config= null;
 module.exports.init = function( _config ) {
     config = _config;
+    storage.init(config);
 };
 
-var generateUserToken = function (m_conn, application) {
+var generateUserToken = function (application, on_ok, on_error ) {
     var S4 = function () {
         return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
     };
     var token = S4() + S4() + S4() + S4() + S4() + S4();
 
-    m_conn.set(config.memcachePrefix + token, JSON.stringify(application), config.memcache_memorize_time, function (err) {
-        if (err) {
-            if (debug) console.log("MEMCACHE ERROR DURING SET");
-        }
-    });
+    storage.setAppData( "tokens", application, token, application , on_ok, on_error);
     return token;
 }
 
 module.exports.routes =
 {
     "/ws/1.1/token.get": function (request, response, application, urlObj, queryObj, call_usertoken) {
-        var m_conn = new nMemcached(config.memcache_server + ":" + config.memcache_port);
-
+        
         // if there is a receipt validation function
         var modified_application = application;
         try {
@@ -32,16 +29,22 @@ module.exports.routes =
                 modified_application = application.receipt_validate(queryObj["receipt"]);
         } catch (e) { console.log("exception " + e); }
 
+        var on_ok = function(data ) {
+            setTimeout( function() {
+                response.writeHeader(200, {
+                    'Content-Length': token_msg.length,
+                    'Content-Type': 'text/plain; charset=utf-8',
+                    'x-mxm-cache': 'no-cache'
+                });
+                response.write(token_msg);
+                response.end();
+                }, 3000 );
+        }
+
         var token_msg = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"' +
-			generateUserToken(m_conn, application) + '" , \"app_config\": ' + JSON.stringify(modified_application.app_config) + ' }}}';
-        response.writeHeader(200, {
-            'Content-Length': token_msg.length,
-            'Content-Type': 'text/plain; charset=utf-8',
-            'x-mxm-cache': 'no-cache'
-        });
-        response.write(token_msg);
-        response.end();
+			generateUserToken(application, on_ok, on_ok) + '" , \"app_config\": ' + JSON.stringify(modified_application.app_config) + ' }}}';
     }
+    /*
 	, "/captcha": function (request, response, application, urlObj, queryObj, call_usertoken) {
         // if there is a receipt validation function
         var modified_application = application;
@@ -61,8 +64,7 @@ module.exports.routes =
                 recaptcha.on('data', function (res) {
                     var html;
                     if (res.is_valid) {
-                        var m_conn = new nMemcached(config.memcache_server + ":" + config.memcache_port);
-                        var token_msg = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"' + generateUserToken(m_conn, modified_application) + '"}}}';
+                        var token_msg = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"' + generateUserToken(modified_application) + '"}}}';
                         response.write(token_msg);
                         response.end();
                     } else {
@@ -82,5 +84,5 @@ module.exports.routes =
             response.write('<html><body><form action="" method="post">' + html + "</form></body></html>");
             response.end();
         }
-    }
+    }*/
 };
