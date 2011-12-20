@@ -8,13 +8,13 @@ module.exports.init = function( _config ) {
     storage.init(config);
 };
 
-var generateUserToken = function (application, on_ok, on_error ) {
+var generateUserToken = function (application, on_ok, on_error,status ) {
     var S4 = function () {
         return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
     };
     var token = S4() + S4() + S4() + S4() + S4() + S4();
 
-    storage.setAppData( "tokens", application, token, application , on_ok, on_error);
+    storage.setAppData( "tokens", application, token, application , on_ok, on_error,status);
     return token;
 }
 
@@ -28,21 +28,45 @@ module.exports.routes =
             if (application.receipt_validate)
                 modified_application = application.receipt_validate(queryObj["receipt"]);
         } catch (e) { console.log("exception " + e); }
-
-        var on_ok = function(data ) {
-            setTimeout( function() {
-                response.writeHeader(200, {
-                    'Content-Length': token_msg.length,
+        
+        on_ok = function(data,state ) {
+            console.log("Checking if token " + state.token + " is readable" );
+            storage.getAppData( "tokens", state.application, state.token, function(a)
+            { 
+                console.log("Token " + state.token + " is readable at try " + state.try );
+                state.response.writeHeader(200, {
+                    'Content-Length': state.token_msg.length,
                     'Content-Type': 'text/plain; charset=utf-8',
                     'x-mxm-cache': 'no-cache'
                 });
-                response.write(token_msg);
-                response.end();
-                }, 3000 );
+                state.response.write(state.token_msg);
+                state.response.end();
+            }, function () {
+                state.try++;
+                if (state.try<10) {
+                    setTimeout( function() {
+                        this.on_ok(data,state);
+                    }, 500 );
+                } else {
+                    var error_msg = '{"message":{"header":{"status_code":500,"execute_time":0 },"body":""}}';
+                    state.response.writeHeader(200, {
+                        'Content-Length': error_msg.length,
+                        'Content-Type': 'text/plain; charset=utf-8',
+                        'x-mxm-cache': 'no-cache'
+                    });
+                    state.response.write(error_msg);
+                    state.response.end();    
+                }
+            },state);
         }
+        var status = new Object();
+        status.application = application;
+        status.response= response;
+        status.token = generateUserToken(application, on_ok, null, status);
+        status.try = 0
 
-        var token_msg = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"' +
-			generateUserToken(application, on_ok, on_ok) + '" , \"app_config\": ' + JSON.stringify(modified_application.app_config) + ' }}}';
+        status.token_msg = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"' +
+			 status.token + '" , \"app_config\": ' + JSON.stringify(modified_application.app_config) + ' }}}';
     }
     /*
 	, "/captcha": function (request, response, application, urlObj, queryObj, call_usertoken) {

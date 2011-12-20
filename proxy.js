@@ -6,7 +6,6 @@ var https = require('https');
 var main = require('./lib/main');
 var debug = config.debug;
 
-/*
 var numCPUs = 16;
 if (cluster.isMaster) {
     // Fork workers.
@@ -22,6 +21,3 @@ else {
     var server = http.createServer(catchedHandleHTTPRequest);
     server.listen(config.server_port);
 }
-*/
-var server = http.createServer(main.server);
-server.listen(config.server_port);
