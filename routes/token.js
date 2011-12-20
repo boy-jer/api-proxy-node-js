@@ -13,6 +13,7 @@ var generateUserToken = function (application, on_ok, on_error,status ) {
         return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
     };
     var token = S4() + S4() + S4() + S4() + S4() + S4();
+    token += S4() + S4() + S4() + S4() + S4() + S4();
 
     storage.setAppData( "tokens", application, token, application , on_ok, on_error,status);
     return token;
@@ -43,9 +44,9 @@ module.exports.routes =
                 state.response.end();
             }, function () {
                 state.try++;
-                if (state.try<10) {
+                if (state.try<3) {
                     setTimeout( function() {
-                        this.on_ok(data,state);
+                        status.on_ok(data,state);
                     }, 500 );
                 } else {
                     var error_msg = '{"message":{"header":{"status_code":500,"execute_time":0 },"body":""}}';
@@ -60,10 +61,12 @@ module.exports.routes =
             },state);
         }
         var status = new Object();
+        status.on_ok = on_ok;
         status.application = application;
         status.response= response;
         status.token = generateUserToken(application, on_ok, null, status);
         status.try = 0
+        
 
         status.token_msg = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"' +
 			 status.token + '" , \"app_config\": ' + JSON.stringify(modified_application.app_config) + ' }}}';
