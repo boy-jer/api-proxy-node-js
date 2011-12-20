@@ -8,3 +8,4 @@ var debug = config.debug;
 
 var server = http.createServer(main.server);
 server.listen( process.env.port || config.server_port);
+

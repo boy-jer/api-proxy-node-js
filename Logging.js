@@ -41,10 +41,10 @@ DocsManager.prototype.logging_prefix = 'DocsManager';
 
 
 (function() {
-    var log_configuration = config.get("logging", {
+   /* var log_configuration = config.get("logging", {
         "level": Logging.LEVEL_WARN
     });
-    
+    */
     var log_configuration = {
     		'level': Logging.LEVEL_WARN,
     		'hide_classes': [

@@ -22,6 +22,7 @@ module.exports.routes =
                      + "&redirect_uri=" + encodeURIComponent(fb_callback) 
                      + "&scope=" + fb_scope + "&display=" + fb_display + "&response_type=token" ,
                 'Content-Type': 'text/plain; charset=utf-8',
+                'Set-Cookie': "app_id=" + application.app_id + "; path=/",
                 'x-mxm-cache': 'no-cache'
             });
             response.write("");
@@ -29,17 +30,10 @@ module.exports.routes =
         }
         else 
         {
-            var error_msg = '{"message":{"header":{"status_code":401,"execute_time":0, "hint": "upgrade" },"body":""}}';
-            response.writeHeader(200, {
-                'Content-Length': error_msg.length,
-                'Content-Type': 'text/plain; charset=utf-8',
-                'Pragma': 'no-cache'
-            });
+            response.sendErrorPacket( 401, "upgrade" );
         }
      }
 };
-
-
 
 var createFacebookToken = function(facebook, code, ok_callback, nok_callback) {
     var fb_id = facebook.app_id;

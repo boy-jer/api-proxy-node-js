@@ -28,13 +28,13 @@ module.exports.routes =
         try {
             if (application.receipt_validate)
                 modified_application = application.receipt_validate(queryObj["receipt"]);
-        } catch (e) { console.log("exception " + e); }
+        } catch (e) { MXMLogger.debug("exception " + util.inspect(e)); }
         
         on_ok = function(data,state ) {
-            console.log("Checking if token " + state.token + " is readable" );
+            MXMLogger.debug("Checking if token " + state.token + " is readable" );
             storage.getAppData( "tokens", state.application, state.token, function(a)
             { 
-                console.log("Token " + state.token + " is readable at try " + state.try );
+                MXMLogger.debug("Token " + state.token + " is readable at try " + state.try );
                 state.response.writeHeader(200, {
                     'Content-Length': state.token_msg.length,
                     'Content-Type': 'text/plain; charset=utf-8',
@@ -49,14 +49,7 @@ module.exports.routes =
                         status.on_ok(data,state);
                     }, 500 );
                 } else {
-                    var error_msg = '{"message":{"header":{"status_code":500,"execute_time":0 },"body":""}}';
-                    state.response.writeHeader(200, {
-                        'Content-Length': error_msg.length,
-                        'Content-Type': 'text/plain; charset=utf-8',
-                        'x-mxm-cache': 'no-cache'
-                    });
-                    state.response.write(error_msg);
-                    state.response.end();    
+                    response.sendErrorPacket( 500, "" );  
                 }
             },state);
         }
@@ -66,7 +59,6 @@ module.exports.routes =
         status.response= response;
         status.token = generateUserToken(application, on_ok, null, status);
         status.try = 0
-        
 
         status.token_msg = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"' +
 			 status.token + '" , \"app_config\": ' + JSON.stringify(modified_application.app_config) + ' }}}';
