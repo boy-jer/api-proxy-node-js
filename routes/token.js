@@ -24,14 +24,16 @@ module.exports.routes =
     "/ws/1.1/token.get": function (request, response, application, urlObj, queryObj, call_usertoken) {
         
         // if there is a receipt validation function
+    	MXMLogger.debug("Query string: " + util.inspect(queryObj) );
         var modified_application = application;
         try {
             if (application.receipt_validate)
-                modified_application = application.receipt_validate(queryObj["receipt"]);
+                modified_application = application.receipt_validate(queryObj.receipt);
         } catch (e) { MXMLogger.debug("exception " + util.inspect(e)); }
         
         on_ok = function(data,state ) {
             MXMLogger.debug("Checking if token " + state.token + " is readable" );
+
             storage.getAppData( "tokens", state.application, state.token, function(a)
             { 
                 MXMLogger.debug("Token " + state.token + " is readable at try " + state._try );
@@ -55,9 +57,13 @@ module.exports.routes =
         };
         var status = new Object();
         status.on_ok = on_ok;
-        status.application = application;
+        status.application = JSON.parse(JSON.stringify( application ) );
+        status.application["receipt"] = queryObj.receipt;
+        status.application["guid"] = queryObj.guid;
+        MXMLogger.debug("Saving this object in the token " + util.inspect(status.application) );
+
         status.response= response;
-        status.token = generateUserToken(application, on_ok, null, status);
+        status.token = generateUserToken(status.application, on_ok, null, status);
         status._try = 0;
 
         status.token_msg = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"' +

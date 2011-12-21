@@ -1,3 +1,4 @@
+var cluster = require('cluster');
 var config = require('./proxy-config');
 //var config_loader = require('./config-loader');
 var http = require('http');
@@ -19,6 +20,6 @@ if (cluster.isMaster) {
 }
 else {
     // Worker processes have a http server.
-    var server = http.createServer(catchedHandleHTTPRequest);
+    var server = http.createServer(main.server);
     server.listen(config.server_port);
 }
