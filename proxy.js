@@ -13,7 +13,8 @@ if (cluster.isMaster) {
         cluster.fork();
     }
     cluster.on('death', function (worker) {
-        console.log('worker ' + worker.pid + ' died');
+        console.log('worker ' + worker.pid + ' died, resuming a new one');
+        cluster.fork();
     });
 }
 else {

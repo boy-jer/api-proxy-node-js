@@ -75,4 +75,4 @@ var createFacebookToken = function(facebook, code, ok_callback, nok_callback) {
         nok_callback();
     });
     req.end();
-} 
+};

@@ -17,7 +17,7 @@ var generateUserToken = function (application, on_ok, on_error,status ) {
 
     storage.setAppData( "tokens", application, token, application , on_ok, on_error,status);
     return token;
-}
+};
 
 module.exports.routes =
 {
@@ -34,7 +34,7 @@ module.exports.routes =
             MXMLogger.debug("Checking if token " + state.token + " is readable" );
             storage.getAppData( "tokens", state.application, state.token, function(a)
             { 
-                MXMLogger.debug("Token " + state.token + " is readable at try " + state.try );
+                MXMLogger.debug("Token " + state.token + " is readable at try " + state._try );
                 state.response.writeHeader(200, {
                     'Content-Length': state.token_msg.length,
                     'Content-Type': 'text/plain; charset=utf-8',
@@ -43,8 +43,8 @@ module.exports.routes =
                 state.response.write(state.token_msg);
                 state.response.end();
             }, function () {
-                state.try++;
-                if (state.try<3) {
+                state._try++;
+                if (state._try<3) {
                     setTimeout( function() {
                         status.on_ok(data,state);
                     }, 500 );
@@ -52,13 +52,13 @@ module.exports.routes =
                     response.sendErrorPacket( 500, "" );  
                 }
             },state);
-        }
+        };
         var status = new Object();
         status.on_ok = on_ok;
         status.application = application;
         status.response= response;
         status.token = generateUserToken(application, on_ok, null, status);
-        status.try = 0
+        status._try = 0;
 
         status.token_msg = '{"message":{"header":{"status_code":200,"execute_time":0},"body":{"user_token":"' +
 			 status.token + '" , \"app_config\": ' + JSON.stringify(modified_application.app_config) + ' }}}';

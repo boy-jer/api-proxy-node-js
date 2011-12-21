@@ -93,7 +93,7 @@ owl.util = owl.util || (function() {
 		copy:copy,
 		clone:clone,
 		chain:chain
-	}
+	};
 
 })();
 
