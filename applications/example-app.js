@@ -34,7 +34,7 @@ module.exports.applications =
             return this;
     }
         , facebook: {
-        app_id: 131314396964274,
+        app_id: 131314396964274
     }
         , sign_calls: false
         , headers: {
