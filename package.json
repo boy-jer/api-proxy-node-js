@@ -1,5 +1,5 @@
 {
-  "name": "api-frontend-proxy",
+  "name": "api-proxy-node-js",
   "description": "Frontend proxy for musiXmatch API, in order to avoid storing APIKEY on native application",
   "author": "musiXmatch support <support@musixmatch.com>",
   "version": "0.9.0",
