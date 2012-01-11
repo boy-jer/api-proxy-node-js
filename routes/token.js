@@ -15,7 +15,13 @@ var generateUserToken = function (application, on_ok, on_error,status ) {
     var token = S4() + S4() + S4() + S4() + S4() + S4();
     token += S4() + S4() + S4() + S4() + S4() + S4();
 
-    storage.setAppData( "tokens", application, token, application , on_ok, on_error,status);
+    var data = {app_id: application.app_id, 
+    			app_name: application.app_name,
+    			receipt: application.receipt,
+    			guid: application.guid
+    			};
+    
+    storage.setAppData( "tokens", application, token, data , on_ok, on_error,status);
     return token;
 };
 
