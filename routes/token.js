@@ -21,11 +21,26 @@ var generateUserToken = function (application, on_ok, on_error,status ) {
 
 module.exports.routes =
 {
+	"/ws/1.1/config.get": function (request, response, application, urlObj, queryObj, call_usertoken) {
+        request.validateToken(application, call_usertoken,
+        		function(data,state) {
+		        	var modified_application = application;
+		            try {
+		                if (application.receipt_validate)
+		                    modified_application = application.receipt_validate( data.receipt );
+		            } catch (e) { MXMLogger.debug("exception " + util.inspect(e)); }
+		            
+            		pkt = { app_config: modified_application.app_config };
+            		esponse.sendErrorPacket( pkt ); 
+				},
+				function(err,state) {
+					response.sendErrorPacket( 401, "renew" );  
+				}
+			);
+	},	
     "/ws/1.1/token.get": function (request, response, application, urlObj, queryObj, call_usertoken) {
-        
         // if there is a receipt validation function
-    	MXMLogger.debug("Query string: " + util.inspect(queryObj) );
-        var modified_application = application;
+    	var modified_application = application;
         try {
             if (application.receipt_validate)
                 modified_application = application.receipt_validate(queryObj.receipt);

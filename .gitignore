@@ -2,3 +2,5 @@
 .buildpath
 .idea/
 .metadata/
+node_modules/**/out
+node_modules/**/build
