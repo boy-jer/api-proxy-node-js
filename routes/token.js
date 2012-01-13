@@ -18,8 +18,10 @@ var generateUserToken = function (application, on_ok, on_error,status ) {
     var data = {app_id: application.app_id, 
     			app_name: application.app_name,
     			receipt: application.receipt,
-    			guid: application.guid
+    			guid: application.guid,
+    			created:  new Date()
     			};
+    MXMLogger.debug("Created token with the following data " + util.inspect(data));
     
     storage.setAppData( "tokens", application, token, data , on_ok, on_error,status);
     return token;
@@ -37,10 +39,11 @@ module.exports.routes =
 		            } catch (e) { MXMLogger.debug("exception " + util.inspect(e)); }
 		            
             		pkt = { app_config: modified_application.app_config };
-            		esponse.sendErrorPacket( pkt ); 
+            		response.sendPacket( pkt ); 
 				},
 				function(err,state) {
-					response.sendErrorPacket( 401, "renew" );  
+            		pkt = { app_config: application.app_config };
+            		response.sendPacket( pkt ); 
 				}
 			);
 	},	

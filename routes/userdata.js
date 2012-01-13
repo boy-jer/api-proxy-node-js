@@ -6,11 +6,13 @@ module.exports.init = function( _config ) {
     config = _config;
 };
 
-var validateParameters = function( userdata_id, params)
+var validateParameters = function( userdata_id, params, keyparametername)
 {
+	if (typeof(keyparametername) == undefined ) 
+		keyparametername = "userdata_id"
 	var blacklist = [ 'usertoken', 'apikey', 'last_updated', 'namespace', 'user_id' ];
 	params = JSON.parse(JSON.stringify(params));
-	params['userdata_id'] = userdata_id;
+	params[keyparametername] = userdata_id;
 	
 	for( var k in blacklist) {
 		delete params[blacklist[k]];
@@ -20,6 +22,55 @@ var validateParameters = function( userdata_id, params)
 
 module.exports.routes =
 {
+    "/ws/1.1/tokendata.get":  function (request, response, application, urlObj, queryObj, call_usertoken) {
+        request.validateToken(application, call_usertoken,
+            function(data,state) {
+                storage.getAppData( "token_" + queryObj["namespace"], application, call_usertoken + ":" + queryObj["tokendata_id"],
+                    function(data,obj) {
+                		delete data["$ItemName"];
+                		delete data["user_id"];
+                        response.sendPacket( { tokendata: data } );
+                    },
+                    function(err,obj) {
+                        response.sendErrorPacket( 404, "" );
+                    });;
+            },
+            function(err,state) {
+                response.sendErrorPacket( 401, "not_authorized" );
+            });
+    },
+    "/ws/1.1/tokendata.post":  function (request, response, application, urlObj, queryObj, call_usertoken) { 
+        request.validateToken(application, call_usertoken,
+            function(data,state) {
+                if (request.method == 'POST') {
+                    var body = request.MXMBody;
+                	try { 
+                        MXMLogger.debug( "Saving token: " + body);
+                        var POST = JSON.parse(body);
+    	                storage.setAppData( "token_" + queryObj["namespace"], application, call_usertoken + ":" + queryObj["tokendata_id"], validateParameters( queryObj["tokendata_id"], POST, "tokendata_id"), 
+    		                    function(data,obj) {
+    		                        response.sendPacket( { userdata: data } );
+    		                    },
+    		                    function(err,obj) {
+    		                        response.sendErrorPacket( 404, "" );
+    		                    });
+                	} catch(e) {
+                        response.sendErrorPacket( 401, "incorrect_format" );
+                	}
+                }
+                else
+	                storage.setAppData( "token_" + queryObj["namespace"], application,  call_usertoken + ":" + queryObj["tokendata_id"], validateParameters( queryObj["tokendata_id"], queryObj, "tokendata_id"), 
+		                    function(data,obj) {
+		                        response.sendPacket( { userdata: data } );
+		                    },
+		                    function(err,obj) {
+		                        response.sendErrorPacket( 404, "" );
+		                    });	                
+            },
+            function(err,state) {
+                response.sendErrorPacket( 401, "not_authorized" );  
+            });
+    },
     "/ws/1.1/userdata.get":  function (request, response, application, urlObj, queryObj, call_usertoken) {
         request.validateToken(application, call_usertoken,
             function(data,state) {
