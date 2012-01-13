@@ -71,8 +71,8 @@ module.exports.init = function( _config ) {
 module.exports.routes =
 {
     "/ws/1.1/track.stores.get":  function (request, response, application, urlObj, queryObj, call_usertoken) {
-        /* request.validateToken(application, call_usertoken,
-            function(data,state) { */
+        request.validateToken(application, call_usertoken,
+            function(data,state) { 
         		try {
         			application.call("track.get", {track_id: queryObj["track_id"]}, 
         				function(data,state) {
@@ -111,9 +111,9 @@ module.exports.routes =
         			MXMLogger.debug( "Error: " + util.inspect(e));
         			response.sendErrorPacket( 404, "" );
         		}
-     /*       },
+            },
             function(err,state) {
                 response.sendErrorPacket( 401, "not_authorized" );
-            }); */
+            }); 
     }
 }
