@@ -4,7 +4,6 @@
   "author": "musiXmatch support <support@musixmatch.com>",
   "version": "0.9.0",
   "dependencies": {
-    "azure": ">=0.5.0",
     "connect-auth": ">=0.4.1",
     "connect-memcached": ">=0.0.2",
     "express": ">= 2.4.6",
