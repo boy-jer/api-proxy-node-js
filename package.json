@@ -18,7 +18,11 @@
     "mysql": ">=0.9.4" ,
     "recaptcha-async": ">=0.0.4",
     "simpledb": ">=0.0.7",
-    "socket.io": ">=0.8.4"  
+    "socket.io": ">=0.8.4",  
+    "mime": ">=1.2.4",
+    "connect": ">=1.4.3",
+    "oauth": ">=0.9.4",
+    "cookies": ">=0.2.1"
   },
   "engine": "node 0.6.0"
 }
