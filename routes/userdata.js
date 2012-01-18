@@ -8,15 +8,19 @@ module.exports.init = function( _config ) {
 
 var validateParameters = function( userdata_id, params, keyparametername)
 {
-	if (typeof(keyparametername) == undefined ) 
-		keyparametername = "userdata_id"
-	var blacklist = [ 'usertoken', 'apikey', 'last_updated', 'namespace', 'user_id' ];
-	params = JSON.parse(JSON.stringify(params));
-	params[keyparametername] = userdata_id;
+	if (typeof(keyparametername) == "undefined" ) 
+		keyparametername = "userdata_id";
 	
+	MXMLogger.debug("using keyparametername: "  + userdata_id );
+	
+	var blacklist = [ 'usertoken', 'apikey', 'last_updated', 'namespace', 'user_id', keyparametername ];
+	params = JSON.parse(JSON.stringify(params));
 	for( var k in blacklist) {
 		delete params[blacklist[k]];
 	}
+	params[keyparametername] = userdata_id;
+	
+
 	return params;
 };
 
@@ -154,5 +158,73 @@ module.exports.routes =
             function(err,state) {
                 response.sendErrorPacket( 401, "not_authorized" );  
             });
-    }
+    },
+    "/ws/1.1/userblob.get":  function (request, response, application, urlObj, queryObj, call_usertoken) {
+        request.validateToken(application, call_usertoken,
+            function(data,state) {
+                var account = data.accounts[0];
+                if  ( account!=null && account.user_id != null ) {
+	                storage.getUserBlob( "uns_" + queryObj["namespace"], account, queryObj["userblob_id"],
+	                    function(data,obj) {
+	                		MXMLogger.debug("sending blob back of size..." +data.length);
+		                    response.writeHeader(200, {
+		                        'Content-Type': 'application/octet-stream',
+		                        'x-mxm-cache': 'no-cache'
+		                    });
+		                    response.write(data, "binary");
+		                    response.end();
+	                    },
+	                    function(err,obj) {
+	                        response.sendErrorPacket( 404, "" );
+	                    });;
+                }
+                else
+                	response.sendErrorPacket(404,"");
+            },
+            function(err,state) {
+                response.sendErrorPacket( 401, "not_authorized" );
+            });
+    },
+    "/ws/1.1/userblob.post":  function (request, response, application, urlObj, queryObj, call_usertoken) { 
+        request.validateToken(application, call_usertoken,
+            function(data,state) {
+        		if (data.accounts && data.accounts.length >0) {
+	                var account = data.accounts[0];
+	                if  ( account != null && account.user_id != null ) {
+		                if (request.method == 'POST') {
+		                    var body = request.MXMBody;
+	                    	try { 
+		                        MXMLogger.debug( "Saving userdata for id " + queryObj["userblob_id"] + " of size " + body.length);
+		    	                storage.setUserBlob( "uns_" + queryObj["namespace"], account, queryObj["userblob_id"], body, 
+		    		                    function(data,obj) {
+		    	                	 		MXMLogger.debug( "Sending back reply to blob post");
+		    		                        response.sendPacket( { userdata: { bytes_saved: body.length }  } );
+		    		                    },
+		    		                    function(err,obj) {
+		    		                        response.sendErrorPacket( 404, "" );
+		    		                    });
+	                    	} catch(e) {
+		                        response.sendErrorPacket( 401, "incorrect_format" );
+	                    	}
+		                }
+		                else
+	    	                storage.setUserBlob( "uns_" + queryObj["namespace"], account, queryObj["userblob_id"], queryObj["blob_data"], 
+	    		                    function(data,obj) {
+	    		                        response.sendPacket( { userdata: { length:  queryObj["blob_data"].length } } );
+	    		                    },
+	    		                    function(err,obj) {
+	    		                        response.sendErrorPacket( 404, "" );
+	    		                    });
+	                }
+	                else 
+	                	 response.sendErrorPacket( 401, "not_authorized" );
+        		} else 
+        			response.sendErrorPacket( 404, "" );
+            },
+            function(err,state) {
+                response.sendErrorPacket( 401, "not_authorized" );  
+            });
+    }    
+    
+    
 };
