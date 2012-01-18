@@ -62,7 +62,7 @@ module.exports.routes =
     					cookies.get("oauth_token_secret"), queryObj["oauth_token_verifier"],  
     					function(a, oauth_access_token, oauth_access_token_secret, results ){
     				
-    				queryObj["oauth_token"] = oauth_access_token_secret;
+    				queryObj["oauth_token"] = oauth_access_token;
     				queryObj["oauth_token_secret"] = oauth_access_token_secret;
     				delete queryObj["oauth_verifier"];
         			queryObj["usertoken"] = "tw:" +oauth_access_token_secret + ":" + oauth_access_token_secret;
