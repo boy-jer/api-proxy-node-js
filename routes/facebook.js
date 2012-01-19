@@ -32,7 +32,37 @@ module.exports.routes =
         {
             response.sendErrorPacket( 401, "upgrade" );
         }
-     }
+     },
+     "/fb/callback" : function(request, response, application, urlObj, queryObj, call_usertoken) {
+     	if ( application.facebook != undefined ) { 
+ 	        if ( queryObj["redirected"] != undefined ) {
+ 	            queryObj["usertoken"] = "fb:" + queryObj["access_token"];
+ 	            
+ 	            var request_url = "/callback" + '?' + qs.stringify(queryObj);
+ 	            response.writeHeader(302, {
+ 	                'Location': request_url,
+ 	                'Content-Type': 'text/plain; charset=utf-8',
+ 	                'x-mxm-cache': 'no-cache',
+ 	                'Set-Cookie': "app_id=; Expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/"
+ 	            });
+ 	            response.end();
+ 	        }
+ 	        else {
+ 	            response.writeHeader(200, {
+ 	                'Content-Type': 'text/html; charset=utf-8',
+ 	                'x-mxm-cache': 'no-cache'
+ 	            });
+ 	            response.write("<script type='text/javascript'>");
+ 	            response.write("document.location = ('' + document.location ).replace('#','?') + '&redirected=1';");
+ 	            response.write("</script>" );
+ 	            response.end();
+ 	        }
+     	}
+     	else 
+     	{
+     		response.sendErrorPacket( 401, "upgrade" );
+     	}
+ 	}
 };
 
 var createFacebookToken = function(facebook, code, ok_callback, nok_callback) {
