@@ -1,3 +1,17 @@
+
+1) Install node.js (>0.6.2)
+
+2) "npm install" in the project lib for installing dependencies
+
+3) configure and application in the applications/*
+
+4) configure the proxy itself copying the proxy-config.js.example on proxy-config.js
+
+5) start with "node proxy-single.js" or "node proxy.js" (for single process or multiprocess)
+
+
+OUTDATED INFO:
+
 To install node.js and required modules:
 
 1) Install node.js

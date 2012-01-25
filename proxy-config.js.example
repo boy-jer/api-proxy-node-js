@@ -1,5 +1,5 @@
 
-module.exports.server_port  = 9000;
+module.exports.server_port  = 8080;
 					// server port on which we listen
 module.exports.memcache_server  = 'localhost';
 			// memcache server host
@@ -27,4 +27,18 @@ module.exports.api_port  = 80;
 					// musiXmatch api server port
 module.exports.debug  = 1;
 						// activate debug console log
+										
+module.exports.mongodb_connection_string = 'mongodb://localhost/example';			
+
+module.exports.simpledb = { keyid:'<AMAZONAWS ACCOUNT KEY>' , 
+                            secret: '<AMAZONAWS SECRET KEY>',
+                            domains_prefix: 'proxy_' 
+                          };
+
+module.exports.s3 = { keyid:'<AMAZONAWS ACCOUNT KEY>' , 
+        secret: '<AMAZONAWS SECRET KEY>',
+        bucket: '<AMAZONAWS BUCKET NAME>' 
+      };
+
+						
 // CONFIG END
