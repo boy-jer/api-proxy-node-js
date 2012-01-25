@@ -3,7 +3,6 @@ General parameters:
 - app_id
 - usertoken (omitted if creating a token)
 
-
 ##################
 Token creation
 ##################
@@ -17,7 +16,6 @@ returns a token valid for the furture call, together with an app specific config
 
 /ws/1.1/config.get
 returns the app specific default config, if no token is provided, or the user config 
-
 
 ##################
 Credentials
@@ -55,7 +53,16 @@ Parameters:
 Returns the same json posted with userdata.post
 
 /ws/1.1/userdata.post
-{ userdata: {  application_defined_json  } }
+{ userdata: {  
+	   key1: val1,
+	   key2, val2,
+	   key3: val3,
+	   key4: { key41: val41, key42: val42 }   
+	} 
+}
+NOTE: each one of the values key1, key2, key3 or key4 (first level keys) has to be smaller than 1024 bytes.
+NOTE2: key4 in the example will be normalized and converted to string before storing it
+
 
 
 ##################
