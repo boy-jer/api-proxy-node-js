@@ -1,0 +1,75 @@
+
+General parameters:
+- app_id
+- usertoken (omitted if creating a token)
+
+
+##################
+Token creation
+##################
+
+Parameters:
+- guid:   unique identifier of the device
+- receipt: serial code for unlocking special feature of the app (tbd)
+
+/ws/1.1/token.get
+returns a token valid for the furture call, together with an app specific config
+
+/ws/1.1/config.get
+returns the app specific default config, if no token is provided, or the user config 
+
+
+##################
+Credentials
+##################
+
+/ws/1.1/credential.get
+TBD, return same structure as the post
+
+/ws/1.1/credential.post
+Document to post or to pass as "credential_list" parameter.
+/* example object: 
+ *   fb - facebook
+ *   g2 - google oauth2
+ *   lv - windows live
+ *   tw - twitter oauth
+ *   
+ { 
+	credential_list: [ 
+ 		{ credential: { type: fb|g2|lv|tw, application: .., auth_token: .. , code: .., refresh_token: .. } },
+ 		{ credential: { .. } },
+ 		{ credential: { .. } }
+ 	]  
+ } 
+*/
+
+##################
+User data
+##################
+
+Parameters:
+- namespace:   application defined namespace for grouping objects
+- userdata_id: application defined key for being able to retrieve the objects
+
+/ws/1.1/userdata.get
+Returns the same json posted with userdata.post
+
+/ws/1.1/userdata.post
+{ userdata: {  application_defined_json  } }
+
+
+##################
+User blob
+##################
+
+Parameters:
+- namespace:   application defined namespace for grouping objects
+- userblob_id: application defined key for being able to retrieve the objects
+
+/ws/1.1/userblob.get
+Returns the same BINARY uploaded
+
+/ws/1.1/userblob.post
+Binary object sent via HTTP POST
+
+
