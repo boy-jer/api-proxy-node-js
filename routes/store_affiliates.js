@@ -70,7 +70,7 @@ module.exports.init = function( _config ) {
 
 module.exports.routes =
 {
-    "/ws/1.1/track.stores.get":  function (request, response, application, urlObj, queryObj, call_usertoken) {
+    "/ws/1.1/obsolete.track.stores.get":  function (request, response, application, urlObj, queryObj, call_usertoken) {
         request.validateToken(application, call_usertoken,
             function(data,state) { 
         		try {
