@@ -138,6 +138,7 @@ module.exports.routes =
 		    		                        response.sendErrorPacket( 404, "" );
 		    		                    });
 	                    	} catch(e) {
+	                    		MXMLogger.debug( "Error in user blog post: " + util.inspect(e));
 		                        response.sendErrorPacket( 401, "incorrect_format" );
 	                    	}
 		                }
