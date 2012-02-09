@@ -59,6 +59,7 @@ module.exports.routes =
     		                        response.sendErrorPacket( 404, "" );
     		                    });
                 	} catch(e) {
+			MXMLogger.debug( "incorrect_format (/ws/1.1/tokendata.post)");
                         response.sendErrorPacket( 401, "incorrect_format" );
                 	}
                 }
@@ -98,14 +99,18 @@ module.exports.routes =
             });
     },
     "/ws/1.1/userdata.post":  function (request, response, application, urlObj, queryObj, call_usertoken) { 
+	MXMLogger.debug("/ws/1.1/userdata.post");
         request.validateToken(application, call_usertoken,
             function(data,state) {
         	
+			MXMLogger.debug("/ws/1.1/userdata.post: token validated");
         		if (data.accounts && data.accounts.length >0) {
+			MXMLogger.debug("/ws/1.1/userdata.post: has account");
 	                var account = data.accounts[0];
 	                if  ( account != null && account.user_id != null ) {
 		                //read from the post the json document to save 
 		                if (request.method == 'POST') {
+			MXMLogger.debug("/ws/1.1/userdata.post: is POST");
 		                    /*var body = '';
 		                    request.on('data', function (data) {
 		                    	MXMLogger.debug( "Saving userdata: " + data);
@@ -189,11 +194,16 @@ module.exports.routes =
     "/ws/1.1/userblob.post":  function (request, response, application, urlObj, queryObj, call_usertoken) { 
         request.validateToken(application, call_usertoken,
             function(data,state) {
+			MXMLogger.debug("/ws/1.1/userblob.post: token validated: "+ util.inspect(data.accounts) );
         		if (data.accounts && data.accounts.length >0) {
+			MXMLogger.debug("/ws/1.1/userblob.post: has account");
 	                var account = data.accounts[0];
 	                if  ( account != null && account.user_id != null ) {
 		                if (request.method == 'POST') {
+				MXMLogger.debug("ws/1.1/userblob.post: it's a POST: " + typeof(request.MXMBody));
 		                    var body = request.MXMBody;
+
+				request.MXMBodyFinished = function ( body ) {
 	                    	try { 
 		                        MXMLogger.debug( "Saving userdata for id " + queryObj["userblob_id"] + " of size " + body.length);
 		    	                storage.setUserBlob( "uns_" + queryObj["namespace"], account, queryObj["userblob_id"], body, 
@@ -205,10 +215,28 @@ module.exports.routes =
 		    		                        response.sendErrorPacket( 404, "" );
 		    		                    });
 	                    	} catch(e) {
+					MXMLogger.debug( "Incorrect format for userblob.post: " + util.inspect(e));	
 		                        response.sendErrorPacket( 401, "incorrect_format" );
 	                    	}
-		                }
-		                else
+				}
+/*
+	                    	try { 
+		                        MXMLogger.debug( "Saving userdata for id " + queryObj["userblob_id"] + " of size " + body.length);
+		    	                storage.setUserBlob( "uns_" + queryObj["namespace"], account, queryObj["userblob_id"], body, 
+		    		                    function(data,obj) {
+		    	                	 		MXMLogger.debug( "Sending back reply to blob post");
+		    		                        response.sendPacket( { userdata: { bytes_saved: body.length }  } );
+		    		                    },
+		    		                    function(err,obj) {
+		    		                        response.sendErrorPacket( 404, "" );
+		    		                    });
+	                    	} catch(e) {
+					MXMLogger.debug( "Incorrect format for userblob.post: " + util.inspect(e));	
+		                        response.sendErrorPacket( 401, "incorrect_format" );
+	                    	}
+*/		                }
+		                else {
+				MXMLogger.debug("ws/1.1/userblob.post: it's a GET");
 	    	                storage.setUserBlob( "uns_" + queryObj["namespace"], account, queryObj["userblob_id"], queryObj["blob_data"], 
 	    		                    function(data,obj) {
 	    		                        response.sendPacket( { userdata: { length:  queryObj["blob_data"].length } } );
@@ -216,6 +244,7 @@ module.exports.routes =
 	    		                    function(err,obj) {
 	    		                        response.sendErrorPacket( 404, "" );
 	    		                    });
+				}
 	                }
 	                else 
 	                	 response.sendErrorPacket( 401, "not_authorized" );
