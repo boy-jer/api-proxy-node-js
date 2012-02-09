@@ -48,20 +48,24 @@ module.exports.routes =
             function(data,state) {
                 if (request.method == 'POST') {
                     var body = request.MXMBody;
-                	try { 
-                        MXMLogger.debug( "Saving token: " + body);
-                        var POST = JSON.parse(body);
-    	                storage.setAppData( "token_" + queryObj["namespace"], application, call_usertoken + ":" + queryObj["tokendata_id"], validateParameters( queryObj["tokendata_id"], POST, "tokendata_id"), 
-    		                    function(data,obj) {
-    		                        response.sendPacket( { userdata: data } );
-    		                    },
-    		                    function(err,obj) {
-    		                        response.sendErrorPacket( 404, "" );
-    		                    });
-                	} catch(e) {
-			MXMLogger.debug( "incorrect_format (/ws/1.1/tokendata.post)");
-                        response.sendErrorPacket( 401, "incorrect_format" );
-                	}
+                    request.MXMBodyFinished = function(body) {
+	                	try { 
+	                        MXMLogger.debug( "Saving token: " + body);
+	                        var POST = JSON.parse(body);
+	    	                storage.setAppData( "token_" + queryObj["namespace"], application, call_usertoken + ":" + queryObj["tokendata_id"], validateParameters( queryObj["tokendata_id"], POST, "tokendata_id"), 
+	    		                    function(data,obj) {
+	    		                        response.sendPacket( { userdata: data } );
+	    		                    },
+	    		                    function(err,obj) {
+	    		                        response.sendErrorPacket( 404, "" );
+	    		                    });
+	                	} catch(e) {
+	                		MXMLogger.debug( "incorrect_format (/ws/1.1/tokendata.post)");
+	                        response.sendErrorPacket( 401, "incorrect_format" );
+	                	}
+                    };
+					if ( body && typeof(body)!="undefined" ) 
+						request.MXMBodyFinished( body );
                 }
                 else
 	                storage.setAppData( "token_" + queryObj["namespace"], application,  call_usertoken + ":" + queryObj["tokendata_id"], validateParameters( queryObj["tokendata_id"], queryObj, "tokendata_id"), 
@@ -132,20 +136,24 @@ module.exports.routes =
 		                    	}
 		                    });*/
 		                    var body = request.MXMBody;
-	                    	try { 
-		                        MXMLogger.debug( "Saving userdata: " + body);
-		                        var POST = JSON.parse(body);
-		    	                storage.setUserData( "uns_" + queryObj["namespace"], account, queryObj["userdata_id"], validateParameters( queryObj["userdata_id"], POST), 
-		    		                    function(data,obj) {
-		    		                        response.sendPacket( { userdata: data } );
-		    		                    },
-		    		                    function(err,obj) {
-		    		                        response.sendErrorPacket( 404, "" );
-		    		                    });
-	                    	} catch(e) {
-	                    		MXMLogger.debug( "Error in user blog post: " + util.inspect(e));
-		                        response.sendErrorPacket( 401, "incorrect_format" );
-	                    	}
+							request.MXMBodyFinished = function(body) {
+		                    	try { 
+			                        MXMLogger.debug( "Saving userdata: " + body);
+			                        var POST = JSON.parse(body);
+			    	                storage.setUserData( "uns_" + queryObj["namespace"], account, queryObj["userdata_id"], validateParameters( queryObj["userdata_id"], POST), 
+			    		                    function(data,obj) {
+			    		                        response.sendPacket( { userdata: data } );
+			    		                    },
+			    		                    function(err,obj) {
+			    		                        response.sendErrorPacket( 404, "" );
+			    		                    });
+		                    	} catch(e) {
+		                    		MXMLogger.debug( "Error in user blog post: " + util.inspect(e));
+			                        response.sendErrorPacket( 401, "incorrect_format" );
+		                    	}
+							};
+							if ( body && typeof(body)!="undefined" ) 
+								request.MXMBodyFinished( body );
 		                }
 		                else
 	    	                storage.setUserData( "uns_" + queryObj["namespace"], account, queryObj["userdata_id"], validateParameters( queryObj["userdata_id"], queryObj), 
@@ -193,68 +201,65 @@ module.exports.routes =
     },
     "/ws/1.1/userblob.post":  function (request, response, application, urlObj, queryObj, call_usertoken) { 
         request.validateToken(application, call_usertoken,
-            function(data,state) {
-			MXMLogger.debug("/ws/1.1/userblob.post: token validated: "+ util.inspect(data.accounts) );
-        		if (data.accounts && data.accounts.length >0) {
-			MXMLogger.debug("/ws/1.1/userblob.post: has account");
-	                var account = data.accounts[0];
-	                if  ( account != null && account.user_id != null ) {
-		                if (request.method == 'POST') {
-				MXMLogger.debug("ws/1.1/userblob.post: it's a POST: " + typeof(request.MXMBody));
-		                    var body = request.MXMBody;
-
-				request.MXMBodyFinished = function ( body ) {
-	                    	try { 
-		                        MXMLogger.debug( "Saving userdata for id " + queryObj["userblob_id"] + " of size " + body.length);
-		    	                storage.setUserBlob( "uns_" + queryObj["namespace"], account, queryObj["userblob_id"], body, 
-		    		                    function(data,obj) {
-		    	                	 		MXMLogger.debug( "Sending back reply to blob post");
-		    		                        response.sendPacket( { userdata: { bytes_saved: body.length }  } );
-		    		                    },
-		    		                    function(err,obj) {
-		    		                        response.sendErrorPacket( 404, "" );
-		    		                    });
-	                    	} catch(e) {
-					MXMLogger.debug( "Incorrect format for userblob.post: " + util.inspect(e));	
-		                        response.sendErrorPacket( 401, "incorrect_format" );
-	                    	}
-				}
-/*
-	                    	try { 
-		                        MXMLogger.debug( "Saving userdata for id " + queryObj["userblob_id"] + " of size " + body.length);
-		    	                storage.setUserBlob( "uns_" + queryObj["namespace"], account, queryObj["userblob_id"], body, 
-		    		                    function(data,obj) {
-		    	                	 		MXMLogger.debug( "Sending back reply to blob post");
-		    		                        response.sendPacket( { userdata: { bytes_saved: body.length }  } );
-		    		                    },
-		    		                    function(err,obj) {
-		    		                        response.sendErrorPacket( 404, "" );
-		    		                    });
-	                    	} catch(e) {
-					MXMLogger.debug( "Incorrect format for userblob.post: " + util.inspect(e));	
-		                        response.sendErrorPacket( 401, "incorrect_format" );
-	                    	}
-*/		                }
-		                else {
-				MXMLogger.debug("ws/1.1/userblob.post: it's a GET");
-	    	                storage.setUserBlob( "uns_" + queryObj["namespace"], account, queryObj["userblob_id"], queryObj["blob_data"], 
-	    		                    function(data,obj) {
-	    		                        response.sendPacket( { userdata: { length:  queryObj["blob_data"].length } } );
-	    		                    },
-	    		                    function(err,obj) {
-	    		                        response.sendErrorPacket( 404, "" );
-	    		                    });
-				}
-	                }
-	                else 
-	                	 response.sendErrorPacket( 401, "not_authorized" );
-        		} else 
-        			response.sendErrorPacket( 404, "" );
-            },
-            function(err,state) {
-                response.sendErrorPacket( 401, "not_authorized" );  
-            });
-    }    
+						            function(data, state) {
+							MXMLogger.debug("/ws/1.1/userblob.post: token validated: "+ util.inspect(data.accounts));
+							if (data.accounts && data.accounts.length > 0) {
+								MXMLogger.debug("/ws/1.1/userblob.post: has account");
+								var account = data.accounts[0];
+								if (account != null && account.user_id != null) {
+									if (request.method == 'POST') {
+										MXMLogger.debug("ws/1.1/userblob.post: it's a POST: " + typeof (request.MXMBody));
+										var body = request.MXMBody;
+										request.MXMBodyFinished = function(body) {
+											try {
+												MXMLogger.debug("Saving userdata for id " + queryObj["userblob_id"] + " of size " + body.length);
+												storage.setUserBlob("uns_" + queryObj["namespace"],
+																account,
+																queryObj["userblob_id"],
+																body,
+																function(data,obj) {
+																	MXMLogger.debug("Sending back reply to blob post");
+																	response.sendPacket({
+																				userdata : {
+																					bytes_saved : body.length
+																				}
+																			});
+																},
+																function(err,obj) {
+																	response.sendErrorPacket(404,"");
+																});
+											} catch (e) {
+												MXMLogger.debug("Incorrect format for userblob.post: " + util.inspect(e));
+												response.sendErrorPacket(401,"incorrect_format");
+											}
+										};
+										if ( body && typeof(body)!="undefined" ) 
+											request.MXMBodyFinished( body );
+									} else {
+										MXMLogger.debug("ws/1.1/userblob.post: it's a GET");
+										storage.setUserBlob("uns_" + queryObj["namespace"],
+														account,
+														queryObj["userblob_id"],
+														queryObj["userblob_data"],
+														function(data, obj) {
+															response.sendPacket({
+																		userdata : {
+																			length : queryObj["userblob_data"].length
+																		}
+																	});
+														},
+														function(err, obj) {
+															response.sendErrorPacket(404,"");
+														});
+									}
+								} else
+									response.sendErrorPacket(401,"not_authorized");
+							} else
+								response.sendErrorPacket(404, "");
+						}, function(err, state) {
+							response.sendErrorPacket(401, "not_authorized");
+						});
+	}    
     
     
 };
